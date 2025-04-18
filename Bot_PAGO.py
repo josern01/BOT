@@ -11,7 +11,10 @@ from telegram.ext import (
 TOKEN = "7920704053:AAHbRxIcB9ipOC7eYr2FtjFmk6g0MmAXIds"
 BOT_URL = "https://bot-vq8s.onrender.com"
 
-# Inicializamos el bot
+# Inicializamos la app de Flask
+flask_app = Flask(__name__)
+
+# Creamos el bot pero lo inicializamos más abajo
 app_bot = ApplicationBuilder().token(TOKEN).build()
 
 # Comando /start
@@ -31,7 +34,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text("Error: No se encontró la imagen de inicio.")
 
-# Manejo de botones
+# Botones
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -72,34 +75,43 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app_bot.add_handler(CommandHandler("start", start))
 app_bot.add_handler(CallbackQueryHandler(button))
 
-# Flask App
-flask_app = Flask(__name__)
-
+# Ruta principal
 @flask_app.route("/")
 def index():
     return "Bot activo y en línea 🔥", 200
 
-# Webhook normal (corregido con asyncio.run)
+# Ruta para recibir updates desde Telegram
 @flask_app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), app_bot.bot)
+
     import asyncio
-    asyncio.run(app_bot.process_update(update))
+    asyncio.run(process_update_async(update))
+
     return "OK", 200
 
-# Endpoint opcional para registrar el webhook desde el navegador
+# Inicializa el bot manualmente
+async def process_update_async(update):
+    if not app_bot.running:
+        await app_bot.initialize()
+        await app_bot.start()
+    await app_bot.process_update(update)
+
+# Ruta opcional para registrar el webhook desde el navegador
 @flask_app.route("/setwebhook")
 def set_webhook():
     bot = Bot(TOKEN)
     bot.set_webhook(f"{BOT_URL}/{TOKEN}")
     return "✅ Webhook registrado correctamente"
 
-# Ejecutamos
+# Ejecutamos todo
 if __name__ == "__main__":
     import asyncio
 
     async def setup():
-        print("Configurando webhook...")
+        print("🔧 Configurando webhook e iniciando bot...")
+        await app_bot.initialize()
+        await app_bot.start()
         await app_bot.bot.set_webhook(url=f"{BOT_URL}/{TOKEN}")
 
     asyncio.run(setup())
