@@ -1,7 +1,19 @@
 import os
+from flask import Flask
+import threading
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
+app_web = Flask('')
+
+@app_web.route('/')
+def home():
+    return "Bot corriendo 😎"
+
+def run_web():
+    app_web.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
+threading.Thread(target=run_web).start()
 # Ruta base del script actual
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
