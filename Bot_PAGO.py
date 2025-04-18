@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -11,10 +11,10 @@ from telegram.ext import (
 TOKEN = "7920704053:AAHbRxIcB9ipOC7eYr2FtjFmk6g0MmAXIds"
 BOT_URL = "https://bot-vq8s.onrender.com"
 
-# Inicializamos la aplicación del bot
+# Inicializamos el bot
 app_bot = ApplicationBuilder().token(TOKEN).build()
 
-# Función /start
+# Comando /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open("imagenes/inicio.jpg", "rb") as photo:
@@ -31,7 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text("Error: No se encontró la imagen de inicio.")
 
-# Botón de respuesta
+# Manejo de botones
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -40,9 +40,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "🔥 *Servicio VIP*\nCada Sub contiene servicio para cuatro cuentas \n1 mes $10💵\nPermanente $45💵"
         try:
             with open("imagenes/1.jpg", "rb") as photo:
-                pay_button = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💳 Pagar Servicio", url="https://t.me/P1sh1ng")]
-                ])
+                pay_button = InlineKeyboardMarkup([[
+                    InlineKeyboardButton("💳 Pagar Servicio", url="https://t.me/P1sh1ng")
+                ]])
                 await query.message.reply_photo(
                     photo=photo,
                     caption=text,
@@ -56,9 +56,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "*Entra al grupo VIP haciendo publicidad de nuestro grupo*"
         try:
             with open("imagenes/Vips.jpg", "rb") as photo:
-                pay_button = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ Mandar Referencia", url="https://t.me/P1sh1ng")]
-                ])
+                pay_button = InlineKeyboardMarkup([[
+                    InlineKeyboardButton("✅ Mandar Referencia", url="https://t.me/P1sh1ng")
+                ]])
                 await query.message.reply_photo(
                     photo=photo,
                     caption=text,
@@ -68,22 +68,31 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except FileNotFoundError:
             await query.message.reply_text("Error: No se encontró la imagen del servicio Phishing.")
 
-# Añadimos los handlers
+# Agregamos los handlers
 app_bot.add_handler(CommandHandler("start", start))
 app_bot.add_handler(CallbackQueryHandler(button))
 
-# Creamos la app Flask
+# Flask App
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def index():
     return "Bot activo y en línea 🔥", 200
 
+# Webhook normal (corregido con asyncio.run)
 @flask_app.route(f"/{TOKEN}", methods=["POST"])
-async def webhook():
+def webhook():
     update = Update.de_json(request.get_json(force=True), app_bot.bot)
-    await app_bot.process_update(update)
+    import asyncio
+    asyncio.run(app_bot.process_update(update))
     return "OK", 200
+
+# Endpoint opcional para registrar el webhook desde el navegador
+@flask_app.route("/setwebhook")
+def set_webhook():
+    bot = Bot(TOKEN)
+    bot.set_webhook(f"{BOT_URL}/{TOKEN}")
+    return "✅ Webhook registrado correctamente"
 
 # Ejecutamos
 if __name__ == "__main__":
