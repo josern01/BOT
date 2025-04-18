@@ -3,28 +3,26 @@ from flask import Flask
 import threading
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-
 import asyncio
 
-# === FLASK PARA KEEP ALIVE ===
-app_web = Flask('')
+# === FLASK FOR KEEPALIVE ===
+app_web = Flask(__name__)
 
 @app_web.route('/')
 def home():
-    return "Bot corriendo 😎"
+    return "Bot running 😎"
 
 def run_web():
-    app_web.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    port = int(os.environ.get('PORT', 8080))  # Use Render-assigned port or default to 8080
+    app_web.run(host='0.0.0.0', port=port)
 
-threading.Thread(target=run_web).start()
-
-# === FUNCIONES DE RUTA DE IMAGEN ===
+# === IMAGE PATH FUNCTIONS ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def ruta_imagen(nombre_archivo):
     return os.path.join(BASE_DIR, "imagenes", nombre_archivo)
 
-# === HANDLER /start ===
+# === /start HANDLER ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open(ruta_imagen("inicio.jpg"), "rb") as photo:
@@ -41,7 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text("❌ Error: No se encontró la imagen de inicio.")
 
-# === HANDLER BOTONES ===
+# === BUTTON HANDLER ===
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -77,7 +75,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except FileNotFoundError:
             await query.message.reply_text("❌ Error: No se encontró la imagen del servicio Publicidad.")
 
-# === VALIDAR IMÁGENES ===
+# === VALIDATE IMAGES ===
 imagenes = ["inicio.jpg", "1.jpg", "Vips.jpg"]
 for img in imagenes:
     path = ruta_imagen(img)
@@ -86,17 +84,27 @@ for img in imagenes:
     else:
         print(f"✅ Imagen cargada correctamente: {path}")
 
-# === INICIALIZAR BOT ===
+# === INITIALIZE BOT ===
 app = ApplicationBuilder().token("7920704053:AAETSuHmEzTWXvC7zMhi4XuN5S60E_W2akM").build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
-print("🤖 Bot corriendo...")
+print("🤖 Bot running...")
 
-# === EJECUTAR POLLING SIN CERRAR EL EVENT LOOP ===
-async def run_bot():
-    await app.bot.delete_webhook(drop_pending_updates=True)
-    await app.run_polling()
+# === RUN BOT AND FLASK ===
+async def main():
+    try:
+        # Start Flask in a separate daemon thread
+        threading.Thread(target=run_web, daemon=True).start()
 
-# Usamos create_task para integrarlo al loop que ya corre
-asyncio.get_event_loop().create_task(run_bot())
+        # Initialize and run the bot
+        await app.initialize()
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        await app.run_polling(allowed_updates=Update.ALL_TYPES)
+    finally:
+        # Ensure proper shutdown
+        await app.shutdown()
+
+if __name__ == '__main__':
+    # Run the main coroutine in a new event loop
+    asyncio.run(main())
