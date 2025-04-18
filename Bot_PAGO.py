@@ -4,6 +4,9 @@ import threading
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
+import asyncio
+
+# === FLASK PARA KEEP ALIVE ===
 app_web = Flask('')
 
 @app_web.route('/')
@@ -14,14 +17,14 @@ def run_web():
     app_web.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 threading.Thread(target=run_web).start()
-# Ruta base del script actual
+
+# === FUNCIONES DE RUTA DE IMAGEN ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Función para construir la ruta a las imágenes
 def ruta_imagen(nombre_archivo):
     return os.path.join(BASE_DIR, "imagenes", nombre_archivo)
 
-# Comando /start
+# === HANDLER /start ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open(ruta_imagen("inicio.jpg"), "rb") as photo:
@@ -38,7 +41,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text("❌ Error: No se encontró la imagen de inicio.")
 
-# Manejo de botones
+# === HANDLER BOTONES ===
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -58,7 +61,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         except FileNotFoundError:
             await query.message.reply_text("❌ Error: No se encontró la imagen del servicio VIP.")
-
     elif query.data == 'servicio_b':
         text = "📢 *Entra al grupo VIP haciendo publicidad del nuestro grupo*"
         try:
@@ -75,7 +77,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except FileNotFoundError:
             await query.message.reply_text("❌ Error: No se encontró la imagen del servicio Publicidad.")
 
-# Validar imágenes antes de arrancar
+# === VALIDAR IMÁGENES ===
 imagenes = ["inicio.jpg", "1.jpg", "Vips.jpg"]
 for img in imagenes:
     path = ruta_imagen(img)
@@ -84,21 +86,17 @@ for img in imagenes:
     else:
         print(f"✅ Imagen cargada correctamente: {path}")
 
-# Inicializar el bot
+# === INICIALIZAR BOT ===
 app = ApplicationBuilder().token("7920704053:AAE4WRZhz8h7-jdf-V8l6HMZM449g_pXuow").build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 print("🤖 Bot corriendo...")
-import asyncio
 
-async def main():
+# === EJECUTAR POLLING SIN CERRAR EL EVENT LOOP ===
+async def run_bot():
     await app.bot.delete_webhook(drop_pending_updates=True)
-    print("🤖 Bot corriendo sin webhook (modo polling)...")
     await app.run_polling()
 
-# Si ya hay un loop corriendo (como en Render), usa esto:
-loop = asyncio.get_event_loop()
-loop.create_task(main())
-loop.run_forever()
-
+# Usamos create_task para integrarlo al loop que ya corre
+asyncio.get_event_loop().create_task(run_bot())
