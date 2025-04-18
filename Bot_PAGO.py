@@ -97,5 +97,8 @@ async def main():
     print("🤖 Bot corriendo sin webhook (modo polling)...")
     await app.run_polling()
 
-asyncio.run(main())
+# Si ya hay un loop corriendo (como en Render), usa esto:
+loop = asyncio.get_event_loop()
+loop.create_task(main())
+loop.run_forever()
 
