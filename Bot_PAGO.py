@@ -1,7 +1,20 @@
 import os
+from flask import Flask, request
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
+TOKEN = "7920704053:AAHbRxIcB9ipOC7eYr2FtjFmk6g0MmAXIds"
+BOT_URL = "https://bot-vq8s.onrender.com"
+
+# Inicializamos la aplicación del bot
+app_bot = ApplicationBuilder().token(TOKEN).build()
+
+# Función /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open("imagenes/inicio.jpg", "rb") as photo:
@@ -18,6 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text("Error: No se encontró la imagen de inicio.")
 
+# Botón de respuesta
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -40,7 +54,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == 'servicio_b':
         text = "*Entra al grupo VIP haciendo publicidad de nuestro grupo*"
-
         try:
             with open("imagenes/Vips.jpg", "rb") as photo:
                 pay_button = InlineKeyboardMarkup([
@@ -55,9 +68,31 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except FileNotFoundError:
             await query.message.reply_text("Error: No se encontró la imagen del servicio Phishing.")
 
-TOKEN = ("7920704053:AAHbRxIcB9ipOC7eYr2FtjFmk6g0MmAXIds")
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button))
+# Añadimos los handlers
+app_bot.add_handler(CommandHandler("start", start))
+app_bot.add_handler(CallbackQueryHandler(button))
 
-app.run_polling()
+# Creamos la app Flask
+flask_app = Flask(__name__)
+
+@flask_app.route("/")
+def index():
+    return "Bot activo y en línea 🔥", 200
+
+@flask_app.route(f"/{TOKEN}", methods=["POST"])
+async def webhook():
+    update = Update.de_json(request.get_json(force=True), app_bot.bot)
+    await app_bot.process_update(update)
+    return "OK", 200
+
+# Ejecutamos
+if __name__ == "__main__":
+    import asyncio
+
+    async def setup():
+        print("Configurando webhook...")
+        await app_bot.bot.set_webhook(url=f"{BOT_URL}/{TOKEN}")
+
+    asyncio.run(setup())
+    port = int(os.environ.get("PORT", 5000))
+    flask_app.run(host="0.0.0.0", port=port)
