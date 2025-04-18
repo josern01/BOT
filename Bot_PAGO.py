@@ -90,4 +90,12 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
 print("🤖 Bot corriendo...")
-app.run_polling()
+import asyncio
+
+async def main():
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    print("🤖 Bot corriendo sin webhook (modo polling)...")
+    await app.run_polling()
+
+asyncio.run(main())
+
