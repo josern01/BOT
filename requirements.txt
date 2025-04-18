@@ -26,4 +26,4 @@ telegram==0.0.1
 typing_extensions==4.12.2
 tzdata==2024.1
 urllib3==2.2.3
-python-telegram-bot==20.0
+python-telegram-bot==22.0
