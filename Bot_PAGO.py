@@ -87,7 +87,7 @@ for img in imagenes:
         print(f"✅ Imagen cargada correctamente: {path}")
 
 # === INICIALIZAR BOT ===
-app = ApplicationBuilder().token("7920704053:AAE4WRZhz8h7-jdf-V8l6HMZM449g_pXuow").build()
+app = ApplicationBuilder().token("7920704053:AAETSuHmEzTWXvC7zMhi4XuN5S60E_W2akM").build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 
